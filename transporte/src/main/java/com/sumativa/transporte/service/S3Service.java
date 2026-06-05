@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 public class S3Service {
 
     public String subirArchivo(String nombreArchivo) {
-        return "https://s3.amazonaws.com/bucket-guias/" + nombreArchivo;
+        return "https://s3.amazonaws.com/cursos12/" + nombreArchivo;
     }
 
     public String descargarArchivo(String s3Url) {
