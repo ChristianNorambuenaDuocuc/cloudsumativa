@@ -6,8 +6,15 @@ import com.sumativa.transporte.exception.GuiaNoEncontradaException;
 import com.sumativa.transporte.mapper.GuiaDespachoMapper;
 import com.sumativa.transporte.model.GuiaDespacho;
 import com.sumativa.transporte.repository.GuiaDespachoRepository;
+
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -102,13 +109,38 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
     }
 
     private byte[] generarPdfSimulado(GuiaDespacho guia) {
-        String contenido = "Guía de despacho\n"
-                + "Número: " + guia.getNumeroGuia() + "\n"
-                + "Transportista: " + guia.getTransportista() + "\n"
-                + "Fecha: " + guia.getFecha() + "\n"
-                + "Destinatario: " + guia.getDestinatario() + "\n"
-                + "Dirección destino: " + guia.getDireccionDestino() + "\n";
+    try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+         PDDocument document = new PDDocument()) {
 
-        return contenido.getBytes();
+        PDPage page = new PDPage();
+        document.addPage(page);
+
+        try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+            contentStream.beginText();
+            contentStream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+            contentStream.setLeading(16);
+            contentStream.newLineAtOffset(50, 750);
+
+            contentStream.showText("Guía de despacho");
+            contentStream.newLine();
+            contentStream.showText("Número: " + guia.getNumeroGuia());
+            contentStream.newLine();
+            contentStream.showText("Transportista: " + guia.getTransportista());
+            contentStream.newLine();
+            contentStream.showText("Fecha: " + guia.getFecha());
+            contentStream.newLine();
+            contentStream.showText("Destinatario: " + guia.getDestinatario());
+            contentStream.newLine();
+            contentStream.showText("Dirección destino: " + guia.getDireccionDestino());
+
+            contentStream.endText();
+        }
+
+        document.save(outputStream);
+        return outputStream.toByteArray();
+
+    } catch (IOException e) {
+        throw new RuntimeException("Error al generar PDF", e);
     }
+}
 }
