@@ -73,16 +73,18 @@ String urlS3 = s3Service.subirArchivo(rutaEfs.toFile(), rutaS3);
     }
 
     @Override
-    public String descargarGuia(Long id, String usuario) {
-        GuiaDespacho guia = repository.findById(id)
-                .orElseThrow(() -> new GuiaNoEncontradaException(id));
+public byte[] descargarGuia(Long id, String usuario) {
 
-        if (!"admin".equals(usuario)) {
-            throw new SecurityException("No tiene permisos para descargar esta guía");
-        }
+    GuiaDespacho guia = repository.findById(id)
+            .orElseThrow(() -> new GuiaNoEncontradaException(id));
 
-        return guia.getS3Url();
+    if (!usuario.equals("admin")) {
+        throw new SecurityException(
+                "No tiene permisos para descargar esta guía");
     }
+
+    return s3Service.descargarArchivo(guia.getS3Url());
+}
 
     @Override
     public GuiaDespachoResponseDTO actualizarGuia(Long id, GuiaDespachoRequestDTO dto) {

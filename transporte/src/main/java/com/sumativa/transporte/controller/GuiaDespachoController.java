@@ -4,7 +4,12 @@ import com.sumativa.transporte.dto.GuiaDespachoRequestDTO;
 import com.sumativa.transporte.dto.GuiaDespachoResponseDTO;
 import com.sumativa.transporte.service.GuiaDespachoService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,12 +35,18 @@ public class GuiaDespachoController {
     }
 
     @GetMapping("/{id}/download")
-    public String descargarGuia(
-            @PathVariable Long id,
-            @RequestParam String usuario
-    ) {
-        return service.descargarGuia(id, usuario);
-    }
+public ResponseEntity<byte[]> descargarGuia(
+        @PathVariable Long id,
+        @RequestParam String usuario) {
+
+    byte[] archivo = service.descargarGuia(id, usuario);
+
+    return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION,
+                    "attachment; filename=guia.pdf")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(archivo);
+}
 
     @PutMapping("/{id}")
     public GuiaDespachoResponseDTO actualizarGuia(
