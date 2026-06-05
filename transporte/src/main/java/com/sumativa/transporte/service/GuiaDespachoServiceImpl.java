@@ -6,7 +6,10 @@ import com.sumativa.transporte.exception.GuiaNoEncontradaException;
 import com.sumativa.transporte.mapper.GuiaDespachoMapper;
 import com.sumativa.transporte.model.GuiaDespacho;
 import com.sumativa.transporte.repository.GuiaDespachoRepository;
+import java.nio.file.Path;
 
+
+import org.springframework.beans.factory.annotation.Value;
 import java.io.ByteArrayOutputStream;
 
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -17,11 +20,16 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
 public class GuiaDespachoServiceImpl implements GuiaDespachoService {
+
+@Value("${efs.path}")
+private String efsPath;
 
     private final GuiaDespachoRepository repository;
     private final S3Service s3Service;
@@ -46,9 +54,16 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
                 .orElseThrow(() -> new GuiaNoEncontradaException(id));
 
         String rutaS3 = generarRutaS3(guia);
-        byte[] contenidoPdf = generarPdfSimulado(guia);
+byte[] contenidoPdf = generarPdfSimulado(guia);
 
-        String urlS3 = s3Service.subirArchivo(contenidoPdf, rutaS3);
+Path rutaEfs = Paths.get(efsPath, "guia-" + guia.getNumeroGuia() + ".pdf");
+try {
+    Files.write(rutaEfs, contenidoPdf);
+} catch (IOException e) {
+    throw new RuntimeException("Error al guardar la guía temporalmente en EFS", e);
+}
+
+String urlS3 = s3Service.subirArchivo(rutaEfs.toFile(), rutaS3);
 
         guia.setS3Url(urlS3);
         guia.setEstado("SUBIDA_A_S3");
