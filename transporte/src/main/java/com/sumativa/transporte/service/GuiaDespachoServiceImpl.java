@@ -1,6 +1,5 @@
 package com.sumativa.transporte.service;
 
-
 import com.sumativa.transporte.dto.GuiaDespachoRequestDTO;
 import com.sumativa.transporte.dto.GuiaDespachoResponseDTO;
 import com.sumativa.transporte.exception.GuiaNoEncontradaException;
@@ -26,7 +25,10 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
     @Override
     public GuiaDespachoResponseDTO crearGuia(GuiaDespachoRequestDTO dto) {
         GuiaDespacho guia = GuiaDespachoMapper.toEntity(dto);
-        return GuiaDespachoMapper.toDTO(repository.save(guia));
+        guia.setEstado("CREADA");
+
+        GuiaDespacho guardada = repository.save(guia);
+        return GuiaDespachoMapper.toDTO(guardada);
     }
 
     @Override
@@ -34,13 +36,16 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
         GuiaDespacho guia = repository.findById(id)
                 .orElseThrow(() -> new GuiaNoEncontradaException(id));
 
-        String nombreArchivo = "guia-" + guia.getNumeroGuia() + ".pdf";
-        String urlS3 = s3Service.subirArchivo(nombreArchivo);
+        String rutaS3 = generarRutaS3(guia);
+        byte[] contenidoPdf = generarPdfSimulado(guia);
+
+        String urlS3 = s3Service.subirArchivo(contenidoPdf, rutaS3);
 
         guia.setS3Url(urlS3);
         guia.setEstado("SUBIDA_A_S3");
 
-        return GuiaDespachoMapper.toDTO(repository.save(guia));
+        GuiaDespacho guardada = repository.save(guia);
+        return GuiaDespachoMapper.toDTO(guardada);
     }
 
     @Override
@@ -48,11 +53,11 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
         GuiaDespacho guia = repository.findById(id)
                 .orElseThrow(() -> new GuiaNoEncontradaException(id));
 
-        if (!usuario.equals("admin")) {
+        if (!"admin".equals(usuario)) {
             throw new SecurityException("No tiene permisos para descargar esta guía");
         }
 
-        return s3Service.descargarArchivo(guia.getS3Url());
+        return guia.getS3Url();
     }
 
     @Override
@@ -67,7 +72,8 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
         guia.setDireccionDestino(dto.getDireccionDestino());
         guia.setEstado("ACTUALIZADA");
 
-        return GuiaDespachoMapper.toDTO(repository.save(guia));
+        GuiaDespacho guardada = repository.save(guia);
+        return GuiaDespachoMapper.toDTO(guardada);
     }
 
     @Override
@@ -84,5 +90,25 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
                 .stream()
                 .map(GuiaDespachoMapper::toDTO)
                 .toList();
+    }
+
+    private String generarRutaS3(GuiaDespacho guia) {
+        String anio = String.valueOf(guia.getFecha().getYear());
+        String transportista = guia.getTransportista()
+                .replaceAll("\\s+", "_")
+                .toLowerCase();
+
+        return anio + "/" + transportista + "/guia-" + guia.getNumeroGuia() + ".pdf";
+    }
+
+    private byte[] generarPdfSimulado(GuiaDespacho guia) {
+        String contenido = "Guía de despacho\n"
+                + "Número: " + guia.getNumeroGuia() + "\n"
+                + "Transportista: " + guia.getTransportista() + "\n"
+                + "Fecha: " + guia.getFecha() + "\n"
+                + "Destinatario: " + guia.getDestinatario() + "\n"
+                + "Dirección destino: " + guia.getDireccionDestino() + "\n";
+
+        return contenido.getBytes();
     }
 }
