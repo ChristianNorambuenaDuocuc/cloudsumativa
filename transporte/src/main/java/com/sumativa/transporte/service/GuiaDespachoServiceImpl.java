@@ -7,6 +7,8 @@ import com.sumativa.transporte.mapper.GuiaDespachoMapper;
 import com.sumativa.transporte.model.GuiaDespacho;
 import com.sumativa.transporte.repository.GuiaDespachoRepository;
 
+import java.io.ByteArrayOutputStream;
+
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
