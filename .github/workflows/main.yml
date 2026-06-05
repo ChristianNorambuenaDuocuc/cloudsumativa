@@ -43,13 +43,6 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
 
-      - name: Debug SSH
-        run: |
-          ssh -vvv \
-          -i ~/.ssh/id_rsa \
-          -o StrictHostKeyChecking=no \
-          ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }}
-          
       - name: Add SSH Key
         run: |
           mkdir -p ~/.ssh
@@ -57,6 +50,14 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ls -la ~/.ssh
           head -1 ~/.ssh/id_rsa
+
+      - name: Debug SSH
+        run: |
+          ssh -vvv \
+          -i ~/.ssh/id_rsa \
+          -o StrictHostKeyChecking=no \
+          ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }} \
+          "echo Conexion SSH OK"
 
       - name: SSH commands to deploy
         run: |
