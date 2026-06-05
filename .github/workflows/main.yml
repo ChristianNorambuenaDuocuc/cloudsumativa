@@ -42,6 +42,14 @@ jobs:
           aws-region: us-east-1
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
 
+
+      - name: Debug SSH
+        run: |
+          ssh -vvv \
+          -i ~/.ssh/id_rsa \
+          -o StrictHostKeyChecking=no \
+          ${{ secrets.USER_SERVER }}@${{ secrets.EC2_HOST }}
+          
       - name: Add SSH Key
         run: |
           mkdir -p ~/.ssh
