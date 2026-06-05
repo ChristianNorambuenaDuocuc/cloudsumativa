@@ -1,16 +1,33 @@
 package com.sumativa.transporte.service;
 
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 @Service
 public class S3Service {
 
-    public String subirArchivo(String nombreArchivo) {
-        return "https://s3.amazonaws.com/cursos12/" + nombreArchivo;
+    private final S3Client s3Client;
+
+    @Value("${aws.s3.bucket}")
+    private String bucketName;
+
+    public S3Service(S3Client s3Client) {
+        this.s3Client = s3Client;
     }
 
-    public String descargarArchivo(String s3Url) {
-        return "Descargando archivo desde: " + s3Url;
+    public String subirArchivo(byte[] contenidoArchivo, String rutaS3) {
+        PutObjectRequest request = PutObjectRequest.builder()
+                .bucket(bucketName)
+                .key(rutaS3)
+                .contentType("application/pdf")
+                .build();
+
+        s3Client.putObject(request, RequestBody.fromBytes(contenidoArchivo));
+
+        return "s3://" + bucketName + "/" + rutaS3;
     }
 }
