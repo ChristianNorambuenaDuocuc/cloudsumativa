@@ -86,21 +86,41 @@ public byte[] descargarGuia(Long id, String usuario) {
     return s3Service.descargarArchivo(guia.getS3Url());
 }
 
-    @Override
-    public GuiaDespachoResponseDTO actualizarGuia(Long id, GuiaDespachoRequestDTO dto) {
-        GuiaDespacho guia = repository.findById(id)
-                .orElseThrow(() -> new GuiaNoEncontradaException(id));
+   @Override
+public GuiaDespachoResponseDTO actualizarGuia(Long id, GuiaDespachoRequestDTO dto) {
+    GuiaDespacho guia = repository.findById(id)
+            .orElseThrow(() -> new GuiaNoEncontradaException(id));
 
-        guia.setNumeroGuia(dto.getNumeroGuia());
-        guia.setTransportista(dto.getTransportista());
-        guia.setFecha(dto.getFecha());
-        guia.setDestinatario(dto.getDestinatario());
-        guia.setDireccionDestino(dto.getDireccionDestino());
-        guia.setEstado("ACTUALIZADA");
+    guia.setNumeroGuia(dto.getNumeroGuia());
+    guia.setTransportista(dto.getTransportista());
+    guia.setFecha(dto.getFecha());
+    guia.setDestinatario(dto.getDestinatario());
+    guia.setDireccionDestino(dto.getDireccionDestino());
+    guia.setEstado("ACTUALIZADA");
 
-        GuiaDespacho guardada = repository.save(guia);
-        return GuiaDespachoMapper.toDTO(guardada);
+    GuiaDespacho guardada = repository.save(guia);
+
+    byte[] contenidoPdf = generarPdfSimulado(guardada);
+
+    Path rutaEfs = Paths.get(
+            efsPath,
+            "guia-" + guardada.getNumeroGuia() + ".pdf"
+    );
+
+    try {
+        Files.write(rutaEfs, contenidoPdf);
+    } catch (IOException e) {
+        throw new RuntimeException("Error al actualizar PDF en EFS", e);
     }
+
+    String rutaS3 = generarRutaS3(guardada);
+    String urlS3 = s3Service.subirArchivo(rutaEfs.toFile(), rutaS3);
+
+    guardada.setS3Url(urlS3);
+    guardada.setEstado("ACTUALIZADA_Y_SUBIDA_A_S3");
+
+    return GuiaDespachoMapper.toDTO(repository.save(guardada));
+}
 
    @Override
 public void eliminarGuia(Long id) {
