@@ -1,5 +1,7 @@
 package com.sumativa.transporte.service;
 
+import java.io.File;
+
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -19,15 +21,15 @@ public class S3Service {
         this.s3Client = s3Client;
     }
 
-    public String subirArchivo(byte[] contenidoArchivo, String rutaS3) {
-        PutObjectRequest request = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(rutaS3)
-                .contentType("application/pdf")
-                .build();
+    public String subirArchivo(File archivo, String rutaS3) {
+    PutObjectRequest request = PutObjectRequest.builder()
+            .bucket(bucketName)
+            .key(rutaS3)
+            .contentType("application/pdf")
+            .build();
 
-        s3Client.putObject(request, RequestBody.fromBytes(contenidoArchivo));
+    s3Client.putObject(request, RequestBody.fromFile(archivo));
 
-        return "s3://" + bucketName + "/" + rutaS3;
-    }
+    return "s3://" + bucketName + "/" + rutaS3;
+}
 }
