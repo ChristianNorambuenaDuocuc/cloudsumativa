@@ -9,6 +9,7 @@ import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 
 @Service
 public class S3Service {
@@ -47,5 +48,20 @@ public byte[] descargarArchivo(String rutaS3) {
     return s3Client.getObjectAsBytes(request)
             .asByteArray();
 }
+public void eliminarArchivo(String rutaS3) {
+    if (rutaS3 == null || rutaS3.isBlank()) {
+        return;
+    }
+
+    String key = rutaS3.replace("s3://" + bucketName + "/", "");
+
+    DeleteObjectRequest request = DeleteObjectRequest.builder()
+            .bucket(bucketName)
+            .key(key)
+            .build();
+
+    s3Client.deleteObject(request);
+}
+
 
 }

@@ -102,13 +102,25 @@ public byte[] descargarGuia(Long id, String usuario) {
         return GuiaDespachoMapper.toDTO(guardada);
     }
 
-    @Override
-    public void eliminarGuia(Long id) {
-        GuiaDespacho guia = repository.findById(id)
-                .orElseThrow(() -> new GuiaNoEncontradaException(id));
+   @Override
+public void eliminarGuia(Long id) {
+    GuiaDespacho guia = repository.findById(id)
+            .orElseThrow(() -> new GuiaNoEncontradaException(id));
 
-        repository.delete(guia);
+    if (guia.getS3Url() != null) {
+        s3Service.eliminarArchivo(guia.getS3Url());
     }
+
+    Path rutaEfs = Paths.get(efsPath, "guia-" + guia.getNumeroGuia() + ".pdf");
+
+    try {
+        Files.deleteIfExists(rutaEfs);
+    } catch (IOException e) {
+        throw new RuntimeException("Error al eliminar la guía temporal desde EFS", e);
+    }
+
+    repository.delete(guia);
+}
 
     @Override
     public List<GuiaDespachoResponseDTO> buscarPorTransportistaYFecha(String transportista, LocalDate fecha) {
