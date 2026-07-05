@@ -64,11 +64,16 @@ resumen.setDireccionDestino(guardada.getDireccionDestino());
 resumen.setEstado(guardada.getEstado());
 resumen.setFechaResumen(LocalDateTime.now());
 
+try {
 System.out.println("ANTES DE ENVIAR RESUMEN A RABBITMQ ID: " + guardada.getId());
 
 resumenProductorService.enviarResumen(resumen);
 
-System.out.println("DESPUES DE ENVIAR RESUMEN A RABBITMQ ID: " + guardada.getId());
+System.out.println("DESPUES DE ENVIAR RESUMEN A RABBITMQ ID: " + guardada.getId());}
+catch (Exception e) {
+    System.out.println("ERROR ENVIANDO RESUMEN A RABBITMQ: " + e.getMessage());
+    e.printStackTrace();
+}
 
 return GuiaDespachoMapper.toDTO(guardada);
 }
