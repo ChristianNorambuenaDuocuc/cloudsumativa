@@ -34,8 +34,8 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
 private String efsPath;
 
     private final GuiaDespachoRepository repository;
-private final S3Service s3Service;
-private final ResumenProductorService resumenProductorService;
+    private final S3Service s3Service;
+    private final ResumenProductorService resumenProductorService;
 
 public GuiaDespachoServiceImpl(
         GuiaDespachoRepository repository,
@@ -47,14 +47,31 @@ public GuiaDespachoServiceImpl(
     this.resumenProductorService = resumenProductorService;
 }
 
-    @Override
-    public GuiaDespachoResponseDTO crearGuia(GuiaDespachoRequestDTO dto) {
-        GuiaDespacho guia = GuiaDespachoMapper.toEntity(dto);
-        guia.setEstado("CREADA");
+  @Override
+public GuiaDespachoResponseDTO crearGuia(GuiaDespachoRequestDTO dto) {
+    GuiaDespacho guia = GuiaDespachoMapper.toEntity(dto);
+    guia.setEstado("CREADA");
 
-        GuiaDespacho guardada = repository.save(guia);
-        return GuiaDespachoMapper.toDTO(guardada);
-    }
+    GuiaDespacho guardada = repository.save(guia);
+
+ResumenInscripcionDTO resumen = new ResumenInscripcionDTO();
+resumen.setGuiaId(guardada.getId());
+resumen.setNumeroGuia(guardada.getNumeroGuia());
+resumen.setTransportista(guardada.getTransportista());
+resumen.setFecha(guardada.getFecha());
+resumen.setDestinatario(guardada.getDestinatario());
+resumen.setDireccionDestino(guardada.getDireccionDestino());
+resumen.setEstado(guardada.getEstado());
+resumen.setFechaResumen(LocalDateTime.now());
+
+System.out.println("ANTES DE ENVIAR RESUMEN A RABBITMQ ID: " + guardada.getId());
+
+resumenProductorService.enviarResumen(resumen);
+
+System.out.println("DESPUES DE ENVIAR RESUMEN A RABBITMQ ID: " + guardada.getId());
+
+return GuiaDespachoMapper.toDTO(guardada);
+}
 
     @Override
     public GuiaDespachoResponseDTO subirGuiaAS3(Long id) {
