@@ -18,6 +18,8 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.springframework.stereotype.Service;
+import com.sumativa.transporte.dto.ResumenInscripcionDTO;
+import java.time.LocalDateTime;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,12 +34,18 @@ public class GuiaDespachoServiceImpl implements GuiaDespachoService {
 private String efsPath;
 
     private final GuiaDespachoRepository repository;
-    private final S3Service s3Service;
+private final S3Service s3Service;
+private final ResumenProductorService resumenProductorService;
 
-    public GuiaDespachoServiceImpl(GuiaDespachoRepository repository, S3Service s3Service) {
-        this.repository = repository;
-        this.s3Service = s3Service;
-    }
+public GuiaDespachoServiceImpl(
+        GuiaDespachoRepository repository,
+        S3Service s3Service,
+        ResumenProductorService resumenProductorService
+) {
+    this.repository = repository;
+    this.s3Service = s3Service;
+    this.resumenProductorService = resumenProductorService;
+}
 
     @Override
     public GuiaDespachoResponseDTO crearGuia(GuiaDespachoRequestDTO dto) {
