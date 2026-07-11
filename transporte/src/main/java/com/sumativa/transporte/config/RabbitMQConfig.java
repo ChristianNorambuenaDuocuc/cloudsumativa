@@ -16,6 +16,7 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.retry.interceptor.RetryOperationsInterceptor;
+import org.springframework.amqp.rabbit.config.StatelessRetryOperationsInterceptor;
 
 @Configuration
 public class RabbitMQConfig {
@@ -194,8 +195,8 @@ public class RabbitMQConfig {
     // REINTENTOS
     // ====================================================
 
-  @Bean
-public RetryOperationsInterceptor retryInterceptor(
+@Bean
+public StatelessRetryOperationsInterceptor retryInterceptor(
         RepublishMessageRecoverer recoverer
 ) {
     return RetryInterceptorBuilder
@@ -214,36 +215,21 @@ public RetryOperationsInterceptor retryInterceptor(
     // CONFIGURACIÓN DEL CONSUMIDOR
     // ====================================================
 
-    @Bean
-    public SimpleRabbitListenerContainerFactory
-    rabbitListenerContainerFactory(
-            ConnectionFactory connectionFactory,
-            MessageConverter jsonMessageConverter,
-            RetryOperationsInterceptor retryInterceptor
-    ) {
-        SimpleRabbitListenerContainerFactory factory =
-                new SimpleRabbitListenerContainerFactory();
+   @Bean
+public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+        ConnectionFactory connectionFactory,
+        MessageConverter jsonMessageConverter,
+        StatelessRetryOperationsInterceptor retryInterceptor
+) {
+    SimpleRabbitListenerContainerFactory factory =
+            new SimpleRabbitListenerContainerFactory();
 
-        factory.setConnectionFactory(connectionFactory);
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(jsonMessageConverter);
 
-        factory.setMessageConverter(
-                jsonMessageConverter
-        );
+    factory.setAdviceChain(retryInterceptor);
+    factory.setDefaultRequeueRejected(false);
 
-        /*
-         * Aplica hasta tres intentos cuando
-         * el consumidor genera un error.
-         */
-        factory.setAdviceChain(
-                retryInterceptor
-        );
-
-        /*
-         * Evita que el mensaje vuelva infinitamente
-         * a la cola principal.
-         */
-        factory.setDefaultRequeueRejected(false);
-
-        return factory;
-    }
+    return factory;
+}
 }
