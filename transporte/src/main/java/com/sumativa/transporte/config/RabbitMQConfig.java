@@ -1,7 +1,6 @@
 package com.sumativa.transporte.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
@@ -147,16 +146,10 @@ public class RabbitMQConfig {
 
     @Bean
     public MessageConverter jsonMessageConverter() {
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        /*
-         * Permite enviar y recibir LocalDate
-         * y LocalDateTime como JSON.
-         */
-        objectMapper.registerModule(new JavaTimeModule());
-
-        return new JacksonJsonMessageConverter(objectMapper);
+    return new JacksonJsonMessageConverter(
+            "com.sumativa.transporte.dto",
+            "com.sumativa.transporte.model"
+    );
     }
 
     // ====================================================
@@ -201,21 +194,21 @@ public class RabbitMQConfig {
     // REINTENTOS
     // ====================================================
 
-    @Bean
-    public RetryOperationsInterceptor retryInterceptor(
-            RepublishMessageRecoverer recoverer
-    ) {
-        return RetryInterceptorBuilder
-                .stateless()
-                .maxAttempts(3)
-                .backOffOptions(
-                        1000,
-                        2.0,
-                        5000
-                )
-                .recoverer(recoverer)
-                .build();
-    }
+  @Bean
+public RetryOperationsInterceptor retryInterceptor(
+        RepublishMessageRecoverer recoverer
+) {
+    return RetryInterceptorBuilder
+            .stateless()
+            .maxRetries(2)
+            .backOffOptions(
+                    1000,
+                    2.0,
+                    5000
+            )
+            .recoverer(recoverer)
+            .build();
+}
 
     // ====================================================
     // CONFIGURACIÓN DEL CONSUMIDOR
