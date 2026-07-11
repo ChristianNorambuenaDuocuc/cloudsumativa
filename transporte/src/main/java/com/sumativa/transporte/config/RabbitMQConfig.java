@@ -21,10 +21,10 @@ import org.springframework.retry.interceptor.RetryOperationsInterceptor;
 @Configuration
 public class RabbitMQConfig {
 
-    /*
-     * COLA PRINCIPAL
-     * Aquí llegan las guías enviadas por el productor.
-     */
+    // ====================================================
+    // CONFIGURACIÓN DE GUÍAS DE DESPACHO
+    // ====================================================
+
     public static final String QUEUE_GUIAS =
             "guias.despacho.queue";
 
@@ -34,11 +34,10 @@ public class RabbitMQConfig {
     public static final String ROUTING_KEY_GUIAS =
             "guias.despacho.key";
 
-    /*
-     * COLA DE ERRORES
-     * Aquí llegan las guías que no pudieron procesarse
-     * después de 3 intentos.
-     */
+    // ====================================================
+    // CONFIGURACIÓN DE COLA DE ERRORES
+    // ====================================================
+
     public static final String QUEUE_GUIAS_ERROR =
             "guias.despacho.error.queue";
 
@@ -48,9 +47,22 @@ public class RabbitMQConfig {
     public static final String ROUTING_KEY_GUIAS_ERROR =
             "guias.despacho.error.key";
 
-    // ----------------------------------------------------
-    // Cola principal
-    // ----------------------------------------------------
+    // ====================================================
+    // CONFIGURACIÓN DEL RESUMEN
+    // ====================================================
+
+    public static final String QUEUE_RESUMEN =
+            "resumen.inscripcion.queue";
+
+    public static final String EXCHANGE_RESUMEN =
+            "resumen.inscripcion.exchange";
+
+    public static final String ROUTING_KEY_RESUMEN =
+            "resumen.inscripcion.key";
+
+    // ====================================================
+    // COLA PRINCIPAL DE GUÍAS
+    // ====================================================
 
     @Bean
     public Queue guiasQueue() {
@@ -75,9 +87,9 @@ public class RabbitMQConfig {
                 .with(ROUTING_KEY_GUIAS);
     }
 
-    // ----------------------------------------------------
-    // Cola de errores
-    // ----------------------------------------------------
+    // ====================================================
+    // COLA DE ERRORES
+    // ====================================================
 
     @Bean
     public Queue guiasErrorQueue() {
@@ -102,21 +114,54 @@ public class RabbitMQConfig {
                 .with(ROUTING_KEY_GUIAS_ERROR);
     }
 
-    // ----------------------------------------------------
-    // Conversión Java ↔ JSON
-    // ----------------------------------------------------
+    // ====================================================
+    // COLA DE RESUMEN
+    // ====================================================
+
+    @Bean
+    public Queue resumenQueue() {
+        return QueueBuilder
+                .durable(QUEUE_RESUMEN)
+                .build();
+    }
+
+    @Bean
+    public DirectExchange resumenExchange() {
+        return new DirectExchange(EXCHANGE_RESUMEN);
+    }
+
+    @Bean
+    public Binding resumenBinding(
+            Queue resumenQueue,
+            DirectExchange resumenExchange
+    ) {
+        return BindingBuilder
+                .bind(resumenQueue)
+                .to(resumenExchange)
+                .with(ROUTING_KEY_RESUMEN);
+    }
+
+    // ====================================================
+    // CONVERSIÓN JAVA ↔ JSON
+    // ====================================================
 
     @Bean
     public MessageConverter jsonMessageConverter() {
+
         ObjectMapper objectMapper = new ObjectMapper();
+
+        /*
+         * Permite enviar y recibir LocalDate
+         * y LocalDateTime como JSON.
+         */
         objectMapper.registerModule(new JavaTimeModule());
 
         return new JacksonJsonMessageConverter(objectMapper);
     }
 
-    // ----------------------------------------------------
-    // Productor
-    // ----------------------------------------------------
+    // ====================================================
+    // CONFIGURACIÓN DEL PRODUCTOR
+    // ====================================================
 
     @Bean
     public RabbitTemplate rabbitTemplate(
@@ -133,14 +178,18 @@ public class RabbitMQConfig {
         return rabbitTemplate;
     }
 
-    // ----------------------------------------------------
-    // Recuperación después de errores
-    // ----------------------------------------------------
+    // ====================================================
+    // RECUPERACIÓN DE MENSAJES CON ERROR
+    // ====================================================
 
     @Bean
     public RepublishMessageRecoverer republishMessageRecoverer(
             RabbitTemplate rabbitTemplate
     ) {
+        /*
+         * Después de agotar los reintentos,
+         * el mensaje se envía al exchange de errores.
+         */
         return new RepublishMessageRecoverer(
                 rabbitTemplate,
                 EXCHANGE_GUIAS_ERROR,
@@ -148,9 +197,9 @@ public class RabbitMQConfig {
         );
     }
 
-    // ----------------------------------------------------
-    // Tres intentos antes de enviar a errores
-    // ----------------------------------------------------
+    // ====================================================
+    // REINTENTOS
+    // ====================================================
 
     @Bean
     public RetryOperationsInterceptor retryInterceptor(
@@ -168,9 +217,9 @@ public class RabbitMQConfig {
                 .build();
     }
 
-    // ----------------------------------------------------
-    // Configuración del consumidor @RabbitListener
-    // ----------------------------------------------------
+    // ====================================================
+    // CONFIGURACIÓN DEL CONSUMIDOR
+    // ====================================================
 
     @Bean
     public SimpleRabbitListenerContainerFactory
@@ -183,12 +232,18 @@ public class RabbitMQConfig {
                 new SimpleRabbitListenerContainerFactory();
 
         factory.setConnectionFactory(connectionFactory);
-        factory.setMessageConverter(jsonMessageConverter);
+
+        factory.setMessageConverter(
+                jsonMessageConverter
+        );
 
         /*
-         * Aplica los tres reintentos.
+         * Aplica hasta tres intentos cuando
+         * el consumidor genera un error.
          */
-        factory.setAdviceChain(retryInterceptor);
+        factory.setAdviceChain(
+                retryInterceptor
+        );
 
         /*
          * Evita que el mensaje vuelva infinitamente
